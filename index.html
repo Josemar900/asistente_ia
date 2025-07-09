@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asistente IA - Bicicletas Eléctricas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      background: #f0f0f0;
+      text-align: center;
+    }
+    input, button {
+      padding: 1em;
+      font-size: 16px;
+      margin: 0.5em;
+    }
+    #respuesta, #historial {
+      margin-top: 2em;
+      font-size: 18px;
+      background: #fff;
+      padding: 1em;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: left;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      word-break: break-word;
+    }
+    #historial {
+      margin-top: 3em;
+    }
+    #limpiar {
+      margin-top: 1em;
+      background-color: #e74c3c;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Asistente IA - Especialista en Bicicletas Eléctricas</h1>
+  <form id="formulario" onsubmit="enviarPregunta(event)">
+    <input type="text" id="pregunta" placeholder="Escribe tu pregunta..." required>
+    <button type="submit">Enviar</button>
+  </form>
+  <div id="respuesta"></div>
+  <div id="historial">
+    <h3>Historial:</h3>
+    <ul id="lista-historial"></ul>
+    <button id="limpiar" onclick="limpiarHistorial()">🗑️ Limpiar historial</button>
+  </div>
+
+  <script>
+    const apiKey = "sk-REEMPLAZAR_TU_API_KEY";
+
+    function agregarAlHistorial(pregunta, respuesta) {
+      const historial = document.getElementById("lista-historial");
+      const item = document.createElement("li");
+      item.textContent = `Tú: ${pregunta} | IA: ${respuesta}`;
+      historial.appendChild(item);
+      guardarHistorialLocal();
+    }
+
+    function guardarHistorialLocal() {
+      const items = [...document.querySelectorAll("#lista-historial li")].map(el => el.textContent);
+      localStorage.setItem("historialIA", JSON.stringify(items));
+    }
+
+    function cargarHistorialLocal() {
+      const items = JSON.parse(localStorage.getItem("historialIA")) || [];
+      const historial = document.getElementById("lista-historial");
+      historial.innerHTML = "";
+      items.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        historial.appendChild(li);
+      });
+    }
+
+    function limpiarHistorial() {
+      localStorage.removeItem("historialIA");
+      document.getElementById("lista-historial").innerHTML = "";
+    }
+
+    window.onload = cargarHistorialLocal;
+
+    async function enviarPregunta(event) {
+      event.preventDefault();
+      const pregunta = document.getElementById("pregunta").value;
+      document.getElementById("respuesta").innerText = "Tú: " + pregunta;
+
+      const mensajes = [
+        {
+          role: "system",
+          content: "Eres un experto en bicicletas eléctricas diseñadas para empresas de seguridad privada. Responde con enfoque técnico y profesional."
+        },
+        {
+          role: "user",
+          content: pregunta
+        }
+      ];
+
+      const respuestaIA = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: mensajes
+        })
+      });
+
+      const data = await respuestaIA.json();
+      const textoRespuesta = data.choices[0].message.content;
+      document.getElementById("respuesta").innerText += "\nIA: " + textoRespuesta;
+      agregarAlHistorial(pregunta, textoRespuesta);
+
+      const speech = new SpeechSynthesisUtterance(textoRespuesta);
+      speech.lang = "es-MX";
+      window.speechSynthesis.speak(speech);
+
+      document.getElementById("pregunta").value = "";
+    }
+  </script>
+
+</body>
+</html>
